@@ -67,7 +67,7 @@ The system continuously processes location updates and exposes them via APIs.
 * Truck Service
 * Shipment Service
 * Tracking Service
-* Analytics Service (optional)
+* Analytics Service 
 
 ### 🔹 Infrastructure
 
@@ -115,7 +115,7 @@ The system continuously processes location updates and exposes them via APIs.
 
 ---
 
-## 🧮 Data Model (Simplified)
+## 🧮 Data Model 
 
 ### trucks
 
@@ -150,12 +150,12 @@ The system continuously processes location updates and exposes them via APIs.
 | Layer            | Technology                    |
 | ---------------- | ----------------------------- |
 | Frontend         | Next.js, Tailwind CSS         |
-| Backend          | FastAPI / Node.js             |
+| Backend          | FastAPI                       |
 | Database         | PostgreSQL                    |
 | Containerization | Docker                        |
 | Orchestration    | Kubernetes                    |
 | IaC              | Terraform                     |
-| CI/CD            | GitHub Actions / Azure DevOps |
+| CI/CD            | GitHub Actions                |
 | Monitoring       | Prometheus + Grafana          |
 
 ---
