@@ -1,43 +1,94 @@
+import httpx
 from sqlalchemy.orm import Session
+from fastapi import HTTPException
 from app.db.models import GPSLog, LatestLocation
+from app.schemas.tracking import LocationUpdateRequest
+from app.core.config import settings
+from datetime import datetime
 
-def update_location(db: Session, data):
-    # 1. insert into gps_logs
-    log = GPSLog(
-        device_id=data.device_id,
-        latitude=data.latitude,
-        longitude=data.longitude
-    )
-    db.add(log)
 
-    # 2. upsert latest_location
-    existing = db.query(LatestLocation).filter(
-        LatestLocation.device_id == data.device_id
-    ).first()
+class TrackingService:
+    def __init__(self, db: Session):
+        self.db = db
 
-    if existing:
-        existing.latitude = data.latitude
-        existing.longitude = data.longitude
-    else:
-        new_loc = LatestLocation(
-            device_id=data.device_id,
-            latitude=data.latitude,
-            longitude=data.longitude
+    def update_location(self, payload: LocationUpdateRequest):
+        # 1. Insert into gps_logs
+        gps_log = GPSLog(
+            device_id=payload.device_id,
+            latitude=payload.latitude,
+            longitude=payload.longitude,
         )
-        db.add(new_loc)
+        self.db.add(gps_log)
 
-    db.commit()
+        # 2. Upsert latest_location
+        existing = (
+            self.db.query(LatestLocation)
+            .filter(LatestLocation.device_id == payload.device_id)
+            .first()
+        )
 
-    return {"status": "updated"}
+        if existing:
+            existing.latitude = payload.latitude
+            existing.longitude = payload.longitude
+            existing.timestamp = datetime.utcnow()
+        else:
+            new_location = LatestLocation(
+                device_id=payload.device_id,
+                latitude=payload.latitude,
+                longitude=payload.longitude,
+            )
+            self.db.add(new_location)
 
+        self.db.commit()
 
-def get_location_by_shipment(db: Session, shipment_id: str):
-    result = db.execute(f"""
-        SELECT l.latitude, l.longitude
-        FROM shipments s
-        JOIN trucks t ON s.truck_id = t.truck_id
-        JOIN latest_location l ON t.device_id = l.device_id
-        WHERE s.shipment_id = '{shipment_id}'
-    """)
+    async def get_location_by_shipment(self, shipment_id: str, token: str):
+        headers = {"Authorization": token}
 
-    return result.fetchone()
+        # 1. Call Shipment Service
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            try:
+                shipment_res = await client.get(
+                    f"{settings.SHIPMENT_SERVICE_URL}/shipments/{shipment_id}",
+                    headers=headers,
+                )
+            except Exception:
+                raise HTTPException(status_code=503, detail="Shipment service unavailable")
+
+        if shipment_res.status_code != 200:
+            raise HTTPException(status_code=404, detail="Shipment not found")
+
+        shipment_data = shipment_res.json()
+        truck_id = shipment_data.get("truck_id")
+
+        # 2. Call Truck Service
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            try:
+                truck_res = await client.get(
+                    f"{settings.TRUCK_SERVICE_URL}/trucks/{truck_id}",
+                    headers=headers,
+                )
+            except Exception:
+                raise HTTPException(status_code=503, detail="Truck service unavailable")
+
+        if truck_res.status_code != 200:
+            raise HTTPException(status_code=404, detail="Truck not found")
+
+        truck_data = truck_res.json()
+        device_id = truck_data.get("device_id")
+
+        # 3. Fetch latest location
+        location = (
+            self.db.query(LatestLocation)
+            .filter(LatestLocation.device_id == device_id)
+            .first()
+        )
+
+        if not location:
+            raise HTTPException(status_code=404, detail="Location not found")
+
+        return {
+            "device_id": device_id,
+            "latitude": location.latitude,
+            "longitude": location.longitude,
+            "timestamp": location.timestamp,
+        }

@@ -1,0 +1,16 @@
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM")
+
+# 🔥 Truck service config
+TRUCK_SERVICE_URL = os.getenv("TRUCK_SERVICE_URL")
+TRUCK_SERVICE_TIMEOUT = float(os.getenv("TRUCK_SERVICE_TIMEOUT", 3))
+TRUCK_SERVICE_RETRIES = int(os.getenv("TRUCK_SERVICE_RETRIES", 3))
+TRUCK_SERVICE_RETRY_DELAY = int(os.getenv("TRUCK_SERVICE_RETRY_DELAY", 1))
+CIRCUIT_BREAKER_FAIL_MAX = int(os.getenv("CIRCUIT_BREAKER_FAIL_MAX", 3))
+CIRCUIT_BREAKER_RESET_TIMEOUT = int(os.getenv("CIRCUIT_BREAKER_RESET_TIMEOUT", 30))

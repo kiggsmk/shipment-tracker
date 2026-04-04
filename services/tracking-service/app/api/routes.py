@@ -1,35 +1,34 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.orm import Session
-from app.schemas.tracking import LocationUpdate
-from app.services.tracking_service import update_location, get_location_by_shipment
-from app.db.session import SessionLocal
+from app.db.session import get_db
+from app.schemas.tracking import LocationUpdateRequest, LocationResponse
+from app.services.tracking_service import TrackingService
 
 router = APIRouter()
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
-
-@router.post("/tracking/location")
-def update_location_api(
-    req: LocationUpdate,
-    db: Session = Depends(get_db)
+@router.post("/location")
+def update_location(
+    payload: LocationUpdateRequest,
+    db: Session = Depends(get_db),
 ):
-    return update_location(db, req)
+    service = TrackingService(db)
+    service.update_location(payload)
+    return {"message": "Location updated successfully"}
 
 
-@router.get("/tracking/{shipment_id}")
-def track_shipment(shipment_id: str, db: Session = Depends(get_db)):
-    loc = get_location_by_shipment(db, shipment_id)
+@router.get("/{shipment_id}", response_model=LocationResponse)
+async def get_tracking(
+    shipment_id: str,
+    db: Session = Depends(get_db),
+    authorization: str = Header(None),
+):
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
 
-    if not loc:
-        raise HTTPException(status_code=404, detail="Location not found")
+    service = TrackingService(db)
 
-    return {
-        "latitude": loc[0],
-        "longitude": loc[1]
-    }
+    return await service.get_location_by_shipment(
+        shipment_id=shipment_id,
+        token=authorization,
+    )
