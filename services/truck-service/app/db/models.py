@@ -1,8 +1,7 @@
 from sqlalchemy import Column, String, TIMESTAMP
 from sqlalchemy.sql import func
-from sqlalchemy.ext.declarative import declarative_base
+from app.db.session import Base  # ✅ use shared Base
 
-Base = declarative_base()
 
 class Truck(Base):
     __tablename__ = "trucks"

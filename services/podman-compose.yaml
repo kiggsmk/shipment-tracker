@@ -1,0 +1,54 @@
+version: "3.9"
+
+services:
+
+  auth-service:
+    build: ./auth
+    image: localhost/auth-service:latest
+    container_name: auth-service
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://postgres:password@host.containers.internal:5432/shipment_db
+      SECRET_KEY: supersecret
+      ALGORITHM: HS256
+
+  truck-service:
+    build: ./truck-service
+    image: localhost/truck-service:latest
+    container_name: truck-service
+    restart: always
+    ports:
+      - "8001:8001"
+    environment:
+      DATABASE_URL: postgresql://postgres:password@host.containers.internal:5432/shipment_db
+      SECRET_KEY: supersecret
+      ALGORITHM: HS256
+
+  shipment-service:
+    build: ./shipment-service
+    image: localhost/shipment-service:latest
+    container_name: shipment-service
+    restart: always
+    ports:
+      - "8002:8002"
+    environment:
+      DATABASE_URL: postgresql://postgres:password@host.containers.internal:5432/shipment_db
+      SECRET_KEY: supersecret
+      ALGORITHM: HS256
+      TRUCK_SERVICE_URL: http://truck-service:8001
+
+  tracking-service:
+    build: ./tracking-service
+    image: localhost/tracking-service:latest
+    container_name: tracking-service
+    restart: always
+    ports:
+      - "8003:8003"
+    environment:
+      DATABASE_URL: postgresql://postgres:password@host.containers.internal:5432/shipment_db
+      SECRET_KEY: supersecret
+      ALGORITHM: HS256
+      SHIPMENT_SERVICE_URL: http://shipment-service:8002
+      TRUCK_SERVICE_URL: http://truck-service:8001
