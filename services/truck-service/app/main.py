@@ -3,8 +3,7 @@ from contextlib import asynccontextmanager
 
 from app.api.routes import router
 from app.db.session import engine
-from app.db.models import Base
-from app.db.models import Truck  # ✅ IMPORTANT
+from app.db.models import Base, Truck
 
 
 @asynccontextmanager

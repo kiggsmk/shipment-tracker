@@ -1,6 +1,9 @@
 from sqlalchemy import Column, String, TIMESTAMP
 from sqlalchemy.sql import func
-from app.db.session import Base  # ✅ use shared Base
+from sqlalchemy.orm import declarative_base  # ✅ ADD THIS
+
+Base = declarative_base()  # ✅ ADD THIS
+
 
 
 class Truck(Base):
